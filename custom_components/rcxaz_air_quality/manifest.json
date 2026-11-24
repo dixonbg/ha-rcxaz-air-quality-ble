@@ -8,12 +8,13 @@
       "service_uuid": "0000c760-0000-1000-8000-00805f9b34fb"
     }
   ],
-  "codeowners": ["@daweizhangau"],
+  "codeowners": ["@dixonbg"],
   "config_flow": true,
   "dependencies": ["bluetooth"],
-  "documentation": "https://github.com/daweizhangau/ha-rcxaz-air-quality-ble",
+  "documentation": "https://github.com/dixonbg/ha-rcxaz-air-quality-ble",
   "integration_type": "device",
   "iot_class": "local_push",
+  "issue_tracker": "https://github.com/dixonbg/ha-rcxaz-air-quality-ble/issues",
   "requirements": ["bleak-retry-connector>=3.0.0"],
   "version": "1.1.0"
 }
