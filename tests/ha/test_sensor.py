@@ -8,7 +8,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from custom_components.rcxaz_air_quality.coordinator import RCXAZAirQualityCoordinator
+from custom_components.rcxaz_air_quality.coordinator import (
+    FIELDS,
+    RCXAZAirQualityCoordinator,
+)
 from custom_components.rcxaz_air_quality.protocol import SensorReading
 from custom_components.rcxaz_air_quality.sensor import (
     CO2Sensor,
@@ -41,6 +44,10 @@ def _make_coordinator(reading=SAMPLE_MERGED_READING, mock_client=None):
     # we patch both the property and the underlying `_client` attribute.
     type(coord).client = property(fget=lambda s: mock_client)
     coord._client = mock_client
+    # Unfiltered coordinator: value() returns the raw field of the reading.
+    coord.value.side_effect = (
+        lambda key: getattr(coord.data, FIELDS[key]) if coord.data is not None else None
+    )
     return coord
 
 

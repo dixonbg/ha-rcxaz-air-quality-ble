@@ -7,6 +7,10 @@ pushes each notification (even partial pages) to HA entities immediately via
 
 The DataUpdateCoordinator's periodic interval is used only as a connection
 health check — the real data flow is notification-driven.
+
+Each measurement passes through a ``NoiseFilter`` (see noise_filter.py) unless
+the user turned smoothing off in the options. Only the fields present in the
+page that just arrived are fed to their filters.
 """
 from __future__ import annotations
 
@@ -24,9 +28,30 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import CLOCK_SYNC_INTERVAL, DOMAIN, HEALTH_CHECK_INTERVAL
+from .const import (
+    CLOCK_SYNC_INTERVAL,
+    CONF_FILTER_ENABLED,
+    CONF_FILTER_TAU,
+    DEFAULT_FILTER_ENABLED,
+    DEFAULT_FILTER_TAU,
+    DOMAIN,
+    HEALTH_CHECK_INTERVAL,
+)
 from .ha_client import DeviceNotAvailableError, RCXAZAirQualityHAClient
+from .noise_filter import DEFAULT_PARAMS, NoiseFilter
 from .protocol import SensorReading
+
+# Measurement key → SensorReading attribute
+FIELDS: dict[str, str] = {
+    "temperature": "temperature_c",
+    "humidity": "humidity_pct",
+    "co2": "co2_ppm",
+    "tvoc": "tvoc_mgm3",
+    "hcho": "hcho_mgm3",
+    "pm1_0": "pm1_0",
+    "pm2_5": "pm2_5",
+    "pm10": "pm10",
+}
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -53,6 +78,17 @@ class RCXAZAirQualityCoordinator(DataUpdateCoordinator[SensorReading]):
         self._address: str = entry.unique_id or ""
         self._client: Optional[RCXAZAirQualityHAClient] = None
         self._clock_sync_count: int = 0
+
+        options = entry.options
+        self.filter_enabled: bool = bool(
+            options.get(CONF_FILTER_ENABLED, DEFAULT_FILTER_ENABLED)
+        )
+        self.filter_tau: float = float(options.get(CONF_FILTER_TAU, DEFAULT_FILTER_TAU))
+        tau = self.filter_tau if self.filter_enabled else 0.0
+        self._filters: dict[str, NoiseFilter] = {
+            key: NoiseFilter(DEFAULT_PARAMS[key], tau) for key in FIELDS
+        }
+        self._values: dict[str, float] = {}
 
     # ── Lifecycle ──────────────────────────────────────────────────────────
 
@@ -166,7 +202,23 @@ class RCXAZAirQualityCoordinator(DataUpdateCoordinator[SensorReading]):
         async_set_updated_data — sensors for the current page update
         right away without waiting for other pages.
         """
+        page = self._client.last_page if self._client is not None else None
+        if not isinstance(page, SensorReading):
+            page = reading
+        now = time.monotonic()
+        for key, attr in FIELDS.items():
+            raw = getattr(page, attr, None)
+            if raw is not None:
+                self._values[key] = self._filters[key].update(raw, now)
         self.async_set_updated_data(reading)
+
+    def value(self, key: str) -> float | None:
+        """Return the value to show for a measurement (smoothed if enabled)."""
+        if key in self._values:
+            return self._values[key]
+        if self.data is None:
+            return None
+        return getattr(self.data, FIELDS[key], None)
 
     def _on_status_changed(self) -> None:
         """Called by the BLE client when connection status changes.

@@ -96,6 +96,7 @@ class RCXAZAirQualityHAClient:
 
         # Latest merged reading (accumulates fields from multiple pages)
         self._last_reading: Optional[SensorReading] = None
+        self._last_page: Optional[SensorReading] = None
         self._last_seen_at: Optional[datetime] = None
 
     # ── Properties ─────────────────────────────────────────────────────────
@@ -113,6 +114,11 @@ class RCXAZAirQualityHAClient:
         if self.is_connected:
             return CONN_STATUS_CONNECTED
         return CONN_STATUS_DISCONNECTED
+
+    @property
+    def last_page(self) -> Optional[SensorReading]:
+        """Return the most recent page as received, before merging."""
+        return self._last_page
 
     @property
     def last_reading(self) -> Optional[SensorReading]:
@@ -280,6 +286,8 @@ class RCXAZAirQualityHAClient:
             return
 
         _LOGGER.debug("Ntf: page=0x%04x %s", reading.page_id, reading)
+
+        self._last_page = reading
 
         # Merge: keep old values for fields not in this page
         merged = reading

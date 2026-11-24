@@ -34,3 +34,12 @@ SUFFIX_LAST_SEEN        = "last_seen"
 CONN_STATUS_CONNECTED    = "Connected"
 CONN_STATUS_CONNECTING   = "Connecting"
 CONN_STATUS_DISCONNECTED = "Disconnected"
+
+# Options
+CONF_FILTER_ENABLED = "filter_enabled"
+CONF_FILTER_TAU = "filter_tau"
+DEFAULT_FILTER_ENABLED = True
+DEFAULT_FILTER_TAU = 60  # seconds
+
+# Sensors turn unavailable when no reading has arrived for this long (seconds)
+STALE_AFTER = 120.0

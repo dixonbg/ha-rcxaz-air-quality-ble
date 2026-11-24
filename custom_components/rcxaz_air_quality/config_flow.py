@@ -9,11 +9,24 @@ from homeassistant.components.bluetooth import (
     BluetoothServiceInfoBleak,
     async_discovered_service_info,
 )
-from homeassistant.config_entries import ConfigFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
 from homeassistant.const import CONF_ADDRESS
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers.selector import (
+    NumberSelector,
+    NumberSelectorConfig,
+    NumberSelectorMode,
+)
 
-from .const import C760_SERVICE_UUID, DOMAIN
+from .const import (
+    C760_SERVICE_UUID,
+    CONF_FILTER_ENABLED,
+    CONF_FILTER_TAU,
+    DEFAULT_FILTER_ENABLED,
+    DEFAULT_FILTER_TAU,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +55,12 @@ class RCXAZAirQualityConfigFlow(ConfigFlow, domain=DOMAIN):
     """Handle discovery and manual configuration of the RCXAZ Air Quality Detector."""
 
     VERSION = 1
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
+        """Return the options flow (smoothing settings)."""
+        return RCXAZAirQualityOptionsFlow()
 
     def __init__(self) -> None:
         self._discovery_info: BluetoothServiceInfoBleak | None = None
@@ -138,3 +157,35 @@ class RCXAZAirQualityConfigFlow(ConfigFlow, domain=DOMAIN):
                 }),
             }),
         )
+
+
+class RCXAZAirQualityOptionsFlow(OptionsFlow):
+    """Smoothing settings."""
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        if user_input is not None:
+            user_input[CONF_FILTER_TAU] = int(user_input[CONF_FILTER_TAU])
+            return self.async_create_entry(data=user_input)
+
+        options = self.config_entry.options
+        schema = vol.Schema({
+            vol.Required(
+                CONF_FILTER_ENABLED,
+                default=options.get(CONF_FILTER_ENABLED, DEFAULT_FILTER_ENABLED),
+            ): bool,
+            vol.Required(
+                CONF_FILTER_TAU,
+                default=options.get(CONF_FILTER_TAU, DEFAULT_FILTER_TAU),
+            ): NumberSelector(
+                NumberSelectorConfig(
+                    min=10,
+                    max=600,
+                    step=5,
+                    unit_of_measurement="s",
+                    mode=NumberSelectorMode.BOX,
+                )
+            ),
+        })
+        return self.async_show_form(step_id="init", data_schema=schema)

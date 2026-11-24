@@ -45,6 +45,11 @@ async def async_get_config_entry_diagnostics(
         "last_seen_at": client.last_seen_at.isoformat() if (client is not None and client.last_seen_at is not None) else None,
         "rssi": coordinator.get_rssi() if coordinator is not None else None,
         "last_reading": reading_dict,
+        "smoothing": {
+            "enabled": coordinator.filter_enabled,
+            "tau_s": coordinator.filter_tau,
+            "values": dict(coordinator._values),
+        } if coordinator is not None else None,
     }
 
     return async_redact_data(data, _REDACT)

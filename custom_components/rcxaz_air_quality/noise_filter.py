@@ -4,7 +4,8 @@ In steady state the readings jitter around a level (e.g. CO2 400..414 ppm).
 The filter averages that jitter away with a time-based exponential moving
 average, but follows a real change immediately: when ``confirm`` consecutive
 readings differ from the average by more than ``jump``, the average snaps to
-the new reading. The published value is the average rounded to ``step``; it
+the new reading; a lone reading beyond ``jump`` is treated as an outlier and
+left out of the average. The published value is the average rounded to ``step``; it
 only changes when the average has moved by at least ``step * hysteresis``,
 so it does not flicker between two neighbouring values.
 
@@ -72,13 +73,15 @@ class NoiseFilter:
             self._avg = float(value)
         else:
             if abs(value - self._avg) > self.params.jump:
+                # Beyond the jitter band: either a real change (confirmed by
+                # the next reading) or a lone outlier. Keep it out of the
+                # average until it is confirmed.
                 self._beyond += 1
+                if self._beyond >= self.params.confirm:
+                    self._avg = float(value)
+                    self._beyond = 0
             else:
                 self._beyond = 0
-            if self._beyond >= self.params.confirm:
-                self._avg = float(value)
-                self._beyond = 0
-            else:
                 dt = min(MAX_STEP_S, max(0.0, ts - (self._last_ts or ts)))
                 alpha = 1.0 - math.exp(-dt / self.tau) if dt > 0 else 0.0
                 self._avg += alpha * (value - self._avg)
