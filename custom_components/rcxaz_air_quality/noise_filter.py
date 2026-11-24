@@ -8,12 +8,18 @@ the new reading. The published value is the average rounded to ``step``; it
 only changes when the average has moved by at least ``step * hysteresis``,
 so it does not flicker between two neighbouring values.
 
+The time step used for averaging is capped at ``MAX_STEP_S`` so that the
+first reading after a gap (reconnect, restart) does not replace the average
+wholesale; the average re-converges over ``tau`` instead.
+
 With ``tau`` <= 0 the filter is disabled and every reading passes through.
 """
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
+
+MAX_STEP_S = 5.0
 
 
 @dataclass(frozen=True)
@@ -73,7 +79,7 @@ class NoiseFilter:
                 self._avg = float(value)
                 self._beyond = 0
             else:
-                dt = max(0.0, ts - (self._last_ts or ts))
+                dt = min(MAX_STEP_S, max(0.0, ts - (self._last_ts or ts)))
                 alpha = 1.0 - math.exp(-dt / self.tau) if dt > 0 else 0.0
                 self._avg += alpha * (value - self._avg)
         self._last_ts = ts
