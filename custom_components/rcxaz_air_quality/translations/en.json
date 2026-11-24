@@ -1,0 +1,78 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "user": {
+        "title": "RCXAZ Air Quality Detector",
+        "description": "No RCXAZ Air Quality Detectors were found nearby. Make sure the device is powered on and in range.",
+        "data": {
+          "address": "Device"
+        }
+      },
+      "bluetooth_confirm": {
+        "title": "RCXAZ Air Quality Detector",
+        "description": "Do you want to set up the {name}?"
+      }
+    },
+    "error": {
+      "no_devices_found": "No RCXAZ Air Quality Detectors found nearby. Ensure the device is powered on and in Bluetooth range."
+    },
+    "abort": {
+      "not_supported": "Device not supported",
+      "already_configured": "Device is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Smoothing",
+        "description": "The detector sends a reading every second and most of the change is sensor jitter. Smoothing averages the jitter away and records a new value only when the level really moves; a sudden real change (for example breathing on the sensor) is shown immediately.",
+        "data": {
+          "filter_enabled": "Smooth noisy readings",
+          "filter_tau": "Averaging time"
+        },
+        "data_description": {
+          "filter_enabled": "Turn off to record every raw reading.",
+          "filter_tau": "Longer is calmer and records less; slow changes show up later. 60 s is a good default."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "temperature": {
+        "name": "Temperature"
+      },
+      "humidity": {
+        "name": "Humidity"
+      },
+      "co2": {
+        "name": "CO₂"
+      },
+      "tvoc": {
+        "name": "TVOC"
+      },
+      "hcho": {
+        "name": "HCHO"
+      },
+      "pm1_0": {
+        "name": "PM1.0"
+      },
+      "pm2_5": {
+        "name": "PM2.5"
+      },
+      "pm10": {
+        "name": "PM10"
+      },
+      "connection_status": {
+        "name": "Connection status"
+      },
+      "rssi": {
+        "name": "RSSI"
+      },
+      "last_seen": {
+        "name": "Last seen"
+      }
+    }
+  }
+}
